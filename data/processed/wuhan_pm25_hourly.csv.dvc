@@ -1,0 +1,5 @@
+outs:
+- md5: 2bf9805204f95f65696d132491944f97
+  size: 225730
+  hash: md5
+  path: wuhan_pm25_hourly.csv
