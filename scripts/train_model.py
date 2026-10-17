@@ -99,7 +99,10 @@ def main():
             "validation_rmse": model_metrics["rmse"],
         })
         mlflow.sklearn.log_model(
-            model, name="model", input_example=X_train.head(2)
+            model,
+    name="model",
+    input_example=X_train.head(2),
+    skops_trusted_types=["sklearn.tree._tree.Tree"],
         )
     results.append({"model": "RandomForest_300_leaf2", **model_metrics})
 
