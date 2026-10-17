@@ -1,4 +1,5 @@
-﻿from pathlib import Path
+﻿import os
+from pathlib import Path
 
 import mlflow.sklearn
 import pandas as pd
@@ -25,10 +26,13 @@ FEATURE_COLUMNS = [
 ]
 
 
-st.set_page_config(page_title="武汉 PM2.5 下一小时预测", layout="wide")
-st.title("武汉 PM2.5 下一小时预测")
-st.caption("2025 年历史数据回放，不是实时监测或实时预报。")
+APP_ENV = os.getenv("APP_ENV", "local")
+APP_TITLE = os.getenv("APP_TITLE", "武汉 PM2.5 下一小时预测")
 
+st.set_page_config(page_title=APP_TITLE, layout="wide")
+st.title(APP_TITLE)
+st.caption("2025 年历史数据回放，不是实时监测或实时预报。")
+st.caption(f"运行环境：{APP_ENV}")
 
 @st.cache_data
 def load_tables():
