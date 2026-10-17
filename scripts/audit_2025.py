@@ -2,7 +2,6 @@
 
 import pandas as pd
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 OBSERVED_PATH = PROJECT_ROOT / "data" / "processed" / "wuhan_pm25_observed.csv"
 HOURLY_PATH = PROJECT_ROOT / "data" / "processed" / "wuhan_pm25_hourly.csv"

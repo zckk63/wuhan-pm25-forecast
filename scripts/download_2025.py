@@ -1,7 +1,7 @@
 ﻿import csv
 import hashlib
 import time
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from urllib.request import Request, urlopen
 
@@ -62,9 +62,9 @@ def main():
                     temporary_path = output_path.with_suffix(".csv.part")
                     temporary_path.write_bytes(payload)
                     temporary_path.replace(output_path)
-                    fetched_at = datetime.now(timezone.utc).isoformat()
+                    fetched_at = datetime.now(UTC).isoformat()
                     break
-                except Exception as error:
+                except (OSError, ValueError) as error:
                     error_message = str(error)
                     if attempt < 3:
                         time.sleep(attempt * 2)

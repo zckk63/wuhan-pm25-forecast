@@ -3,7 +3,6 @@
 import numpy as np
 import pandas as pd
 
-
 ROOT = Path(__file__).resolve().parents[1]
 INPUT = ROOT / "data" / "processed" / "wuhan_pm25_hourly.csv"
 OUTPUT = ROOT / "data" / "processed" / "wuhan_pm25_features.csv"
