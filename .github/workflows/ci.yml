@@ -1,0 +1,52 @@
+﻿name: Project CI
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out project
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Check code
+        run: ruff check .
+
+      - name: Restore data and model from Azure
+        env:
+          AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
+          AZURE_STORAGE_SAS_TOKEN: ${{ secrets.AZURE_STORAGE_SAS_TOKEN }}
+        run: |
+          dvc remote modify --local myazure account_name "$AZURE_STORAGE_ACCOUNT"
+          dvc remote modify --local myazure sas_token "$AZURE_STORAGE_SAS_TOKEN"
+          dvc pull \
+            data/processed/wuhan_pm25_observed.csv.dvc \
+            data/processed/wuhan_pm25_hourly.csv.dvc \
+            data/processed/wuhan_pm25_features.csv.dvc \
+            models/random_forest.dvc
+
+      - name: Run tests
+        run: python -m pytest -q
+
+      - name: Build Docker image
+        run: docker build -t wuhan-pm25-forecast:ci .
