@@ -1,0 +1,5 @@
+[core]
+    remote = myazure
+['remote "myazure"']
+    url = azure://dvc/wuhan-pm25
+    account_name = wut2026
