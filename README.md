@@ -215,6 +215,20 @@ Azure DVC 远程路径：
 
 
 Azure 凭据保存在本地 `.dvc/config.local` 中，该文件被 Git 忽略。仓库不包含 SAS 令牌。
+另外，项目完成了两个实际用于训练的数据版本：
+
+| 标签 | 特征变化 |
+|---|---|
+| training-data-v1 | 当前及历史浓度滞后值、目标日历特征 |
+| training-data-v2 | 在 v1 上增加 1、3、24 小时浓度变化特征 |
+
+两个版本的样本和时间划分一致。v2 的验证 RMSE 略低，
+但 MAE 略高，因此应用继续使用 v1 特征模型。
+
+数据版本、训练提交号和 DVC 哈希见
+[数据说明](ml/README_data.md)；
+完整对比与选择理由见
+[实验说明](ml/README_experiments.md)。
 
 
 
@@ -368,66 +382,51 @@ Docker 镜像已在本地成功构建并运行，容器内的仪表盘和预测�
 
 
 
-\## 9. 测试与持续集成
-
-
+## 9. 测试、分支与持续交付
 
 本地检查命令：
 
-
-
 ```powershell
-
-.\\.venv\\Scripts\\ruff.exe check .
-
-.\\.venv\\Scripts\\python.exe -m pytest -q
-
+.\.venv\Scripts\ruff.exe check .
+.\.venv\Scripts\python.exe -m pytest -q
 ```
 
+当前共有 38 个测试案例，包含原有数据检查以及参数化边界测试，覆盖：
 
+- 全年小时序列、特征样本和评估报告的一致性。
+- 缺失字段、重复时间、时间间隔断开和非法浓度。
+- 零浓度与缺失值的保留。
+- 历史长度不足、滞后值和下一小时目标的对应关系。
+- 缺失观测对特征样本的影响。
+- 修改未来浓度不会改变当前输入特征。
+- 跨月预测、时间划分和目标小时日历编码。
 
-当前包含 4 项自动测试：
+开发与合并路径：
 
+功能分支 → dev → staging → main
 
+dev、staging、main 均设置分支保护：要求通过 PR 合并，
+check-and-build 检查成功，且源分支与目标分支保持最新。
+规则同样约束管理员；个人项目不要求其他成员审批。
 
-1\. 全年小时表的时间轴、唯一性和有效浓度数量。
+GitHub Actions 触发方式：
 
-2\. 特征样本数量、数据集划分及必要字段完整性。
+| 事件 | 检查、测试与 Docker 构建 | 环境交付 |
+|---|---|---|
+| PR 目标为 dev/staging/main | 执行 | 跳过 |
+| 推送到 dev | 执行 | 跳过 |
+| 推送到 staging | 执行 | staging |
+| 推送到 main | 执行 | production |
 
-3\. 每个样本的目标时间恰好比预测发起时间晚一小时。
+环境交付必须在 CI 成功后运行。它使用对应 GitHub Environment
+中的 Secrets 生成临时 .env 文件，构建带分支和提交号标签的镜像，
+并在容器中运行 Streamlit AppTest，检查页面异常、标题和环境标识。
 
-4\. 随机森林的测试集 MAE 和 RMSE 优于持续性基线。
+交付摘要以 delivery-summary.json 保存为工作流 Artifact，
+保留 30 天。镜像在临时运行器中构建和验证，不推送到镜像仓库，
+也不提供常驻的云端网页。
 
-
-
-GitHub Actions 在推送到 main 后自动执行：
-
-
-
-1\. 安装 Python 依赖。
-
-2\. 运行 Ruff 代码检查。
-
-3\. 使用 GitHub Secrets 从 Azure 恢复所需数据和模型。
-
-4\. 运行 pytest。
-
-5\. 构建 Docker 镜像。
-
-
-
-工作流已成功运行通过。CI 中验证了镜像能够构建；容器内的页面和交互另外经过本地人工验证。
-
-
-
-所需仓库 Secrets：
-
-
-
-\- `AZURE\_STORAGE\_ACCOUNT`
-
-\- `AZURE\_STORAGE\_SAS\_TOKEN`
-
+详细流程见 [DEPLOYMENT.md](DEPLOYMENT.md)。
 
 
 \## 10. 主要目录
@@ -471,4 +470,18 @@ Dockerfile              Docker 镜像构建配置
 \- 模型目前用于历史回放，尚未接入实时数据获取、定时重训和运行监控。
 
 \- 后续可加入气象特征、扩展年份，并采用滚动时间验证评估模型稳定性。
+
+## 12. 实验与交付证据
+
+- [数据来源与两个训练版本](ml/README_data.md)
+- [MLflow 实验及模型选择](ml/README_experiments.md)
+- [当前应用模型登记](ml/registry/current_model.md)
+- [数据和模型来源链](ml/PROVENANCE.md)
+- [分支与环境交付流程](DEPLOYMENT.md)
+- [MLflow 实验摘要](reports/mlflow_experiment_summary.csv)
+- [MLflow 实验记录快照](reports/mlflow_experiment_records.json)
+- [应用模型来源核对](reports/model_provenance.json)
+
+实验快照用于核对本项目保存的历史结果，不替代 MLflow 后端。
+本地 MLflow 数据库不提交到 Git；重新训练会生成新的运行 ID。
 

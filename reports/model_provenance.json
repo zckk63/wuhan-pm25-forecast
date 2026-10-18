@@ -1,0 +1,11 @@
+{
+  "source_model_uri": "models:/m-d282d879969647339e26af6db6104fe9",
+  "source_run_id": "0ffe9f64766641e58bd86bb5e0915fe9",
+  "source_run_status": "FINISHED",
+  "training_code_sha": "9e652b723f17269cafb36862e30410f7cd1f4e1d",
+  "training_data_sha256": "3afd9c7c398da91081146c24a73052085448db5562f320d789d481d08fbedf11",
+  "exported_model_dvc_md5": "59fed1f6f6998ce6a1c5a2b60ba5194a.dir",
+  "verified_test_samples": 924,
+  "prediction_comparison": "passed",
+  "note": "Prediction agreement verifies consistency; export source also follows the recorded project history."
+}
