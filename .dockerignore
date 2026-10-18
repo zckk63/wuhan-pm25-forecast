@@ -8,3 +8,5 @@ mlruns/
 mlartifacts/
 mlflow.db*
 data/raw/
+.env
+.env.*
