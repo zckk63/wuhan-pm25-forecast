@@ -1,16 +1,18 @@
-﻿import subprocess
+﻿
+import subprocess
 from hashlib import sha256
 from pathlib import Path
 
 import mlflow
 import mlflow.sklearn
 import pandas as pd
+import yaml
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_PATH = ROOT / "data" / "processed" / "wuhan_pm25_features.csv"
-REPORT_PATH = ROOT / "reports" / "validation_metrics.csv"
+REPORT_PATH = ROOT / "reports" / "validation_metrics_v1.csv"
 DB_PATH = ROOT / "mlflow.db"
 
 FEATURE_COLUMNS = [
@@ -49,6 +51,10 @@ def main():
         ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
     ).strip()
     data_sha = sha256(DATA_PATH.read_bytes()).hexdigest()
+    pointer_path = DATA_PATH.with_suffix(DATA_PATH.suffix + ".dvc")
+    pointer = yaml.safe_load(pointer_path.read_text(encoding="utf-8-sig"))
+    dvc_md5 = pointer["outs"][0]["md5"]
+    dataset_version = "training-data-v1"
 
     mlflow.set_tracking_uri(f"sqlite:///{DB_PATH.as_posix()}")
     mlflow.set_experiment("Wuhan_PM25_Next_Hour")
@@ -58,12 +64,14 @@ def main():
     # 基线：假设下一小时浓度等于当前小时浓度
     baseline_prediction = X_valid["pm25_lag_0h"]
     baseline_metrics = calculate_metrics(y_valid, baseline_prediction)
-    with mlflow.start_run(run_name="Persistence_Baseline"):
+    with mlflow.start_run(run_name="Data_v1_Persistence_Baseline"):
         mlflow.log_params({
             "model_type": "persistence",
             "feature_count": len(FEATURE_COLUMNS),
             "code_sha": code_sha,
             "data_sha256": data_sha,
+            "dataset_version": dataset_version,
+            "dvc_data_md5": dvc_md5,
         })
         mlflow.log_metrics({
             "validation_mae": baseline_metrics["mae"],
@@ -83,7 +91,7 @@ def main():
     model_prediction = model.predict(X_valid)
     model_metrics = calculate_metrics(y_valid, model_prediction)
 
-    with mlflow.start_run(run_name="RandomForest_300_leaf2"):
+    with mlflow.start_run(run_name="Data_v1_RandomForest_300_leaf2"):
         mlflow.log_params({
             "model_type": "RandomForestRegressor",
             "n_estimators": 300,
@@ -93,6 +101,8 @@ def main():
             "feature_count": len(FEATURE_COLUMNS),
             "code_sha": code_sha,
             "data_sha256": data_sha,
+            "dataset_version": dataset_version,
+            "dvc_data_md5": dvc_md5,
         })
         mlflow.log_metrics({
             "validation_mae": model_metrics["mae"],
